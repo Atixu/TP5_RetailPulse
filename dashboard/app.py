@@ -141,11 +141,22 @@ def render():
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("Répartition du CA par catégorie")
+        # Au-delà de 10 parts, les couleurs se répètent : les plus petites catégories sont
+        # regroupées dans « Autres » (simple somme d'affichage des agrégats Spark).
+        share = by_category[["category", "revenue"]].head(9)
+        others = by_category["revenue"].iloc[9:].sum()
+        if others > 0:
+            share = pd.concat([share, pd.DataFrame([{"category": "Autres", "revenue": others}])],
+                              ignore_index=True)
+        share["rank"] = range(len(share))
         st.altair_chart(
-            alt.Chart(by_category).mark_arc(innerRadius=60).encode(
-                theta=alt.Theta("revenue:Q"),
-                color=alt.Color("category:N", title="Catégorie", sort="-x"),
-                tooltip=["category", alt.Tooltip("revenue:Q", format=",.2f", title=f"CA ({CURRENCY})")],
+            alt.Chart(share).mark_arc(innerRadius=60).encode(
+                theta=alt.Theta("revenue:Q", stack=True),
+                order=alt.Order("rank:Q"),
+                color=alt.Color("category:N", title="Catégorie",
+                                sort=alt.EncodingSortField(field="rank", order="ascending")),
+                tooltip=[alt.Tooltip("category:N", title="Catégorie"),
+                         alt.Tooltip("revenue:Q", format=",.2f", title=f"CA ({CURRENCY})")],
             ).properties(height=320),
             use_container_width=True,
         )
