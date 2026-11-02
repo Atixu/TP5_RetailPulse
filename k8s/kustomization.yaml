@@ -1,0 +1,14 @@
+# Ressources permanentes. Les Jobs (jobs/) sont appliqués séparément et dans
+# l'ordre par scripts/k8s-deploy.sh (collector, puis reference-loader).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: retailpulse
+resources:
+  - base/namespace.yaml
+  - base/configmap.yaml
+  - kafka/kafka.yaml
+  - postgres/postgres.yaml
+  - producer/producer.yaml
+  - spark/spark.yaml
+  - dashboard/dashboard.yaml
+  - tools/toolbox.yaml

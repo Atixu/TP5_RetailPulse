@@ -1,0 +1,28 @@
+# Pod d'outillage (même image que les applications) pour les scénarios de test :
+#   kubectl -n retailpulse exec deploy/toolbox -- python inject_event.py --help
+# Il permet d'injecter des événements contrôlés sans dépendre du pod producer.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toolbox
+  namespace: retailpulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: toolbox }
+  template:
+    metadata:
+      labels: { app: toolbox, app.kubernetes.io/part-of: retailpulse }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: toolbox
+          image: retailpulse-app:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["sleep", "infinity"]
+          envFrom:
+            - configMapRef: { name: retailpulse-config }
+            - secretRef: { name: retailpulse-db }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 256Mi }

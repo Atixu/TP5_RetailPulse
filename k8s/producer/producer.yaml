@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  namespace: retailpulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: producer }
+  template:
+    metadata:
+      labels: { app: producer, app.kubernetes.io/part-of: retailpulse }
+    spec:
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 20    # SIGTERM -> flush() avant l'arrêt
+      containers:
+        - name: producer
+          image: retailpulse-app:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "producer.py"]
+          envFrom:
+            - configMapRef: { name: retailpulse-config }
+            - secretRef: { name: retailpulse-db }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          # Le processus s'arrête en cas d'erreur fatale : le redémarrage par le
+          # Deployment suffit, une sonde HTTP n'apporterait rien ici.
+          livenessProbe:
+            exec: { command: ["sh", "-c", "kill -0 1"] }
+            periodSeconds: 30

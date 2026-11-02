@@ -1,0 +1,26 @@
+# Chargement des référentiels Kafka -> PostgreSQL (upsert, rejouable sans doublon).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reference-loader
+  namespace: retailpulse
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: reference-loader, app.kubernetes.io/part-of: retailpulse }
+    spec:
+      restartPolicy: OnFailure
+      enableServiceLinks: false
+      containers:
+        - name: reference-loader
+          image: retailpulse-app:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "reference_loader.py"]
+          envFrom:
+            - configMapRef: { name: retailpulse-config }
+            - secretRef: { name: retailpulse-db }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }

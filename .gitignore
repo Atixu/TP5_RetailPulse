@@ -1,0 +1,14 @@
+# Secrets : seul .env.example est versionné
+.env
+k8s/**/secret*.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Résultats locaux
+benchmarks/raw/
+*.log
+.DS_Store

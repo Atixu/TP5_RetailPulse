@@ -1,0 +1,32 @@
+# Configuration non sensible partagée par les composants.
+# Les identifiants PostgreSQL sont dans le Secret retailpulse-db (scripts/k8s-secret.sh).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: retailpulse-config
+  namespace: retailpulse
+data:
+  KAFKA_BOOTSTRAP_SERVERS: kafka:29092          # DNS du Service kafka (même namespace)
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  TOPIC_PRODUCTS: retail-products
+  TOPIC_CUSTOMERS: retail-customers
+  TOPIC_ORDERS: retail-orders
+  TOPIC_ORDER_EVENTS: retail-order-events
+  EVENT_TOPIC_PARTITIONS: "3"
+  KAFKA_REPLICATION_FACTOR: "1"
+  CURRENCY: USD
+  # Producteur
+  MIN_INTERVAL_S: "0.5"
+  MAX_INTERVAL_S: "2.0"
+  RATE: "0"
+  PAYMENT_SUCCESS_RATE: "0.8"
+  CANCEL_AFTER_FAIL_RATE: "0.5"
+  # Spark
+  CHECKPOINT_DIR: /checkpoints/retailpulse
+  WATERMARK_DELAY: 10 minutes
+  WINDOW_DURATION: 5 minutes
+  TRIGGER_INTERVAL: 5 seconds
+  SHUFFLE_PARTITIONS: "3"
+  # Dashboard
+  REFRESH_SECONDS: "10"

@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-checkpoints
+  namespace: retailpulse
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-ui
+  namespace: retailpulse
+spec:
+  type: NodePort
+  selector: { app: spark }
+  ports:
+    - { name: ui, port: 4040, targetPort: 4040, nodePort: 30440 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark
+  namespace: retailpulse
+spec:
+  replicas: 1                 # un seul driver : le checkpoint ne se partage pas
+  strategy: { type: Recreate } # l'ancien pod libère le PVC RWO avant le nouveau
+  selector:
+    matchLabels: { app: spark }
+  template:
+    metadata:
+      labels: { app: spark, app.kubernetes.io/part-of: retailpulse }
+    spec:
+      enableServiceLinks: false
+      securityContext: { fsGroup: 185 }   # utilisateur « spark » de l'image
+      containers:
+        - name: spark
+          image: retailpulse-spark:1.0.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: retailpulse-config }
+            - secretRef: { name: retailpulse-db }
+          env:
+            - { name: SPARK_MASTER, value: "local[2]" }
+            - { name: SPARK_DRIVER_MEMORY, value: 1g }
+          ports: [{ name: ui, containerPort: 4040 }]
+          resources:
+            requests: { cpu: "1", memory: 1536Mi }
+            limits: { cpu: "2", memory: 2Gi }
+          readinessProbe:          # l'UI répond quand le SparkContext est démarré
+            httpGet: { path: /, port: 4040 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 4040 }
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts: [{ name: checkpoints, mountPath: /checkpoints }]
+      volumes:
+        - name: checkpoints
+          persistentVolumeClaim: { claimName: spark-checkpoints }
