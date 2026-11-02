@@ -12,3 +12,6 @@ __pycache__/
 benchmarks/raw/
 *.log
 .DS_Store
+
+# Documents de l’enseignant (non redistribués)
+*.pdf
