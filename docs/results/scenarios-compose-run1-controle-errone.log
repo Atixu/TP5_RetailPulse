@@ -1,0 +1,86 @@
+
+[1m=== Flux nominal ===[0m
+  Avant : 196 commandes, 44 agrégats
+  Attente de 30 s de production…
+  Après : 226 commandes, 61 agrégats
+  [32mOK[0m   25 nouvelles commandes persistées
+  [32mOK[0m   25 agrégats mis à jour récemment
+  Latence moyenne émission -> PostgreSQL (order_events) : 168.45 s
+  Pause du producteur (scénario déterministe)
+  [31mKO[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1393465.70 obtenu=1488266.17
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[31mScénario en échec[0m
+
+[1m=== Paiement échoué ===[0m
+  Pause du producteur (scénario déterministe)
+  PAYMENT_FAILED injecté pour ORD-TEST-444C7BAA (montant 26.82)
+  [32mOK[0m   CA total inchangé : attendu=1501767.00 obtenu=1501767.00
+  [32mOK[0m   Statut de la commande : PAYMENT_FAILED
+  [32mOK[0m   Contrôle : un PAYMENT_COMPLETED ajoute son montant : attendu=1501793.82 obtenu=1501793.82
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Doublon (même event_id publié deux fois) ===[0m
+  Pause du producteur (scénario déterministe)
+  event_id=93d3b358-f898-47c7-8a47-9e36de51c577 publié 2 fois, montant=15.92
+  [32mOK[0m   CA augmenté une seule fois : attendu=1679798.87 obtenu=1679798.87
+  [32mOK[0m   Lignes order_events pour cet event_id : attendu=1 obtenu=1
+  [31mKO[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1584998.40 obtenu=1679798.87
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[31mScénario en échec[0m
+
+[1m=== Reprise de Spark depuis le checkpoint ===[0m
+  Reprise du producteur
+  Production pendant 20 s, puis arrêt brutal de Spark
+  Spark arrêté ; le producteur continue 30 s (Kafka bufferise)
+  Spark relancé (order_events avant reprise : 587)
+  Pause du producteur (scénario déterministe)
+  order_events après reprise : 654
+  [31mKO[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1877640.34 obtenu=1972440.81
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[31mScénario en échec[0m
+
+[1m=== PostgreSQL indisponible pendant 45 s ===[0m
+  Reprise du producteur
+  PostgreSQL arrêté ; production continue (les événements restent dans Kafka)
+  PostgreSQL rétabli
+  Redémarrages Spark : 0, producteur : 0
+  Pause du producteur (scénario déterministe)
+  [31mKO[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=2152717.67 obtenu=2247518.14
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[31mScénario en échec[0m
+
+[1m=== Événements tardifs et watermark (10 minutes) ===[0m
+  Reprise du producteur
+  Pause du producteur (scénario déterministe)
+  Paiement antidaté de 7 min (2026-11-02T10:08:49.959Z), montant 68.48
+  [32mOK[0m   Retard 7 min (< watermark) : intégré : attendu=2280593.09 obtenu=2280593.09
+  Paiement antidaté de 30 min (2026-11-02T09:46:02.902Z)
+  [32mOK[0m   Retard 30 min (> watermark) : ignoré par l'agrégat : attendu=2280593.09 obtenu=2280593.09
+  [32mOK[0m   …mais tracé dans order_events : attendu=1 obtenu=1
+  Watermark courant : 2026-11-02T10:05:35.678Z
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Événements invalides ===[0m
+  Pause du producteur (scénario déterministe)
+  CHAMP_OBLIGATOIRE_MANQUANT|1
+  JSON_INVALIDE|1
+  PRODUIT_INCONNU|1
+  [32mOK[0m   JSON_INVALIDE isolé (1)
+  [32mOK[0m   CHAMP_OBLIGATOIRE_MANQUANT isolé (1)
+  [32mOK[0m   PRODUIT_INCONNU isolé (1)
+  [32mOK[0m   CA inchangé : attendu=2377808.37 obtenu=2377808.37
+  Reprise du producteur
+
+[32mScénario réussi[0m

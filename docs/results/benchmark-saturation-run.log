@@ -1,0 +1,151 @@
+
+>>> rate=500 cmd/s, partitions=3, spark=local[2]
+{
+  "label": "rate=500 cmd/s, partitions=3, spark=local[2]",
+  "rate": 500,
+  "partitions": 3,
+  "master": "local[2]",
+  "run_id": "20261102-120012-saturation-0",
+  "measure_window": [
+    "2026-11-02T11:00:47.835070+00:00",
+    "2026-11-02T11:02:17.843160+00:00"
+  ],
+  "produced_events_per_s": 1051.5,
+  "produced_events_total": 120827,
+  "processed_events_per_s": 1051.51,
+  "drain_after_stop_s": 4.3,
+  "latency_to_order_events_s": {
+    "p50": 3.15,
+    "p95": 5.37,
+    "max": 5.67,
+    "n": 94636.0
+  },
+  "latency_to_aggregate_s": {
+    "p50": 0.41,
+    "p95": 0.52,
+    "max": 0.63,
+    "n": 432.0
+  },
+  "spark_batches": {
+    "orders-detail": {
+      "batches": 18,
+      "avg_duration_ms": 695,
+      "max_duration_ms": 749,
+      "avg_input_rows": 5257.6,
+      "avg_processed_rows_per_s": 7575.2
+    },
+    "sales-aggregates": {
+      "batches": 18,
+      "avg_duration_ms": 394,
+      "max_duration_ms": 463,
+      "avg_input_rows": 2757.7,
+      "avg_processed_rows_per_s": 7053.3
+    }
+  },
+  "resources": {
+    "spark": {
+      "cpu_avg_pct": 0.8,
+      "cpu_max_pct": 1.1,
+      "mem_avg_mib": 956,
+      "mem_max_mib": 990
+    },
+    "kafka": {
+      "cpu_avg_pct": 19.2,
+      "cpu_max_pct": 96.2,
+      "mem_avg_mib": 1695,
+      "mem_max_mib": 2633
+    },
+    "postgres": {
+      "cpu_avg_pct": 0.6,
+      "cpu_max_pct": 2.5,
+      "mem_avg_mib": 154,
+      "mem_max_mib": 156
+    },
+    "producer": {
+      "cpu_avg_pct": 11.5,
+      "cpu_max_pct": 16.2,
+      "mem_avg_mib": 25,
+      "mem_max_mib": 27
+    }
+  }
+}
+
+>>> rate=1500 cmd/s, partitions=3, spark=local[2]
+{
+  "label": "rate=1500 cmd/s, partitions=3, spark=local[2]",
+  "rate": 1500,
+  "partitions": 3,
+  "master": "local[2]",
+  "run_id": "20261102-120012-saturation-1",
+  "measure_window": [
+    "2026-11-02T11:02:57.843252+00:00",
+    "2026-11-02T11:04:27.850033+00:00"
+  ],
+  "produced_events_per_s": 3150.5,
+  "produced_events_total": 361889,
+  "processed_events_per_s": 3150.97,
+  "drain_after_stop_s": 6.6,
+  "latency_to_order_events_s": {
+    "p50": 4.29,
+    "p95": 6.43,
+    "max": 7.25,
+    "n": 283587.0
+  },
+  "latency_to_aggregate_s": {
+    "p50": 0.62,
+    "p95": 1.05,
+    "max": 1.09,
+    "n": 432.0
+  },
+  "spark_batches": {
+    "orders-detail": {
+      "batches": 18,
+      "avg_duration_ms": 1920,
+      "max_duration_ms": 2537,
+      "avg_input_rows": 15754.8,
+      "avg_processed_rows_per_s": 8261.2
+    },
+    "sales-aggregates": {
+      "batches": 18,
+      "avg_duration_ms": 653,
+      "max_duration_ms": 1060,
+      "avg_input_rows": 8254.9,
+      "avg_processed_rows_per_s": 12869.1
+    }
+  },
+  "resources": {
+    "spark": {
+      "cpu_avg_pct": 32.9,
+      "cpu_max_pct": 183.7,
+      "mem_avg_mib": 1096,
+      "mem_max_mib": 1205
+    },
+    "kafka": {
+      "cpu_avg_pct": 13.3,
+      "cpu_max_pct": 34.5,
+      "mem_avg_mib": 1122,
+      "mem_max_mib": 1160
+    },
+    "postgres": {
+      "cpu_avg_pct": 1.4,
+      "cpu_max_pct": 19.2,
+      "mem_avg_mib": 156,
+      "mem_max_mib": 158
+    },
+    "producer": {
+      "cpu_avg_pct": 18.4,
+      "cpu_max_pct": 29.5,
+      "mem_avg_mib": 25,
+      "mem_max_mib": 27
+    }
+  }
+}
+
+### Expérience : saturation
+
+| Configuration | Produit (évt/s) | Traité (évt/s) | Latence → order_events p50 / p95 (s) | Latence → agrégat p50 / p95 (s) | Batch agrégats moy. / max (ms) | Drain (s) | CPU Spark moy. / max (%) | RAM Spark max (MiB) | CPU Kafka moy. (%) |
+|---|---|---|---|---|---|---|---|---|---|
+| rate=500 cmd/s, partitions=3, spark=local[2] | 1051.5 | 1051.51 | 3.15 / 5.37 | 0.41 / 0.52 | 394 / 463 | 4.3 | 0.8 / 1.1 | 990 | 19.2 |
+| rate=1500 cmd/s, partitions=3, spark=local[2] | 3150.5 | 3150.97 | 4.29 / 6.43 | 0.62 / 1.05 | 653 / 1060 | 6.6 | 32.9 / 183.7 | 1205 | 13.3 |
+
+Résultats : docs/results/benchmark-20261102-120012.json / .md

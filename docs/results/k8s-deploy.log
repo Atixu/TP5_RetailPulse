@@ -1,0 +1,91 @@
+
+[1m>> Import des images dans le nœud kind (Docker Desktop)[0m
+Import de retailpulse-app:1.0.0 dans le nœud desktop-control-plane (linux/arm64)
+Import de retailpulse-spark:1.0.0 dans le nœud desktop-control-plane (linux/arm64)
+Import de retailpulse-dashboard:1.0.0 dans le nœud desktop-control-plane (linux/arm64)
+IMAGE                                           TAG                  IMAGE ID            SIZE
+docker.io/library/retailpulse-app               1.0.0                df3328b83321b       65.7MB
+docker.io/library/retailpulse-dashboard         1.0.0                9b9e07abed219       190MB
+docker.io/library/retailpulse-spark             1.0.0                fb7328392b20a       543MB
+
+[1m>> Namespace, configuration et secret[0m
+namespace/retailpulse created
+configmap/retailpulse-config created
+secret/retailpulse-db created
+configmap/postgres-init created
+
+[1m>> Kafka et PostgreSQL[0m
+service/kafka-headless created
+service/kafka created
+statefulset.apps/kafka created
+service/postgres created
+statefulset.apps/postgres created
+Waiting for 1 pods to be ready...
+partitioned roll out complete: 1 new pods have been updated...
+Waiting for 1 pods to be ready...
+partitioned roll out complete: 1 new pods have been updated...
+
+[1m>> Job collector (DummyJSON -> Kafka)[0m
+job.batch/collector created
+job.batch/collector condition met
+  },
+  "delivered": 402,
+  "delivery_failures": 0
+}
+2026-11-02 11:05:48,465 INFO [collector] Collecte terminée : 402 messages livrés
+
+[1m>> Job reference-loader (Kafka -> PostgreSQL)[0m
+job.batch/reference-loader created
+job.batch/reference-loader condition met
+2026-11-02 11:05:55,481 INFO [reference-loader] Messages traités : {'retail-products': 194, 'retail-customers': 208}, invalides : 0
+2026-11-02 11:05:55,481 INFO [reference-loader] PostgreSQL contient 194 produits et 208 clients
+
+[1m>> Producteur, Spark et tableau de bord[0m
+deployment.apps/producer created
+persistentvolumeclaim/spark-checkpoints created
+service/spark-ui created
+deployment.apps/spark created
+service/dashboard created
+deployment.apps/dashboard created
+Waiting for deployment "producer" rollout to finish: 0 of 1 updated replicas are available...
+deployment "producer" successfully rolled out
+Waiting for deployment "spark" rollout to finish: 0 of 1 updated replicas are available...
+deployment "spark" successfully rolled out
+deployment "dashboard" successfully rolled out
+
+[1m>> État du namespace[0m
+NAME                             READY   STATUS      RESTARTS   AGE
+pod/collector-d2chv              0/1     Completed   0          36s
+pod/dashboard-844b8948d9-9gjsb   1/1     Running     0          24s
+pod/kafka-0                      1/1     Running     0          68s
+pod/postgres-0                   1/1     Running     0          68s
+pod/producer-b87548b6-qhptw      1/1     Running     0          24s
+pod/reference-loader-85xll       0/1     Completed   0          31s
+pod/spark-75bc8cbb87-ptq8r       1/1     Running     0          24s
+
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/dashboard   1/1     1            1           24s
+deployment.apps/producer    1/1     1            1           24s
+deployment.apps/spark       1/1     1            1           24s
+
+NAME                        READY   AGE
+statefulset.apps/kafka      1/1     68s
+statefulset.apps/postgres   1/1     68s
+
+NAME                         STATUS     COMPLETIONS   DURATION   AGE
+job.batch/collector          Complete   1/1           5s         36s
+job.batch/reference-loader   Complete   1/1           7s         31s
+
+NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)              AGE
+service/dashboard        NodePort    10.96.216.141   <none>        8501:30851/TCP       24s
+service/kafka            ClusterIP   10.96.228.20    <none>        29092/TCP            68s
+service/kafka-headless   ClusterIP   None            <none>        29092/TCP,9093/TCP   68s
+service/postgres         ClusterIP   10.96.174.170   <none>        5432/TCP             68s
+service/spark-ui         NodePort    10.96.201.21    <none>        4040:30440/TCP       24s
+
+NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-kafka-0        Bound    pvc-d6151b9e-d9f7-40cc-a154-fd32090ce866   2Gi        RWO            standard       <unset>                 68s
+persistentvolumeclaim/data-postgres-0     Bound    pvc-5a16aed5-7c29-4f5e-a532-b62898f92134   2Gi        RWO            standard       <unset>                 68s
+persistentvolumeclaim/spark-checkpoints   Bound    pvc-e5357980-f5ae-4711-9c6a-dc8a25e01f78   1Gi        RWO            standard       <unset>                 24s
+
+Tableau de bord : http://localhost:30851   Spark UI : http://localhost:30440

@@ -11,6 +11,7 @@ __pycache__/
 # Résultats locaux
 benchmarks/raw/
 *.log
+!docs/results/*.log
 .DS_Store
 
 # Documents de l’enseignant (non redistribués)

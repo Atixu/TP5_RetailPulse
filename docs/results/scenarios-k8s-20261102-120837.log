@@ -1,0 +1,95 @@
+
+[1m=== Flux nominal ===[0m
+  Avant : 121 commandes, 24 agrégats
+  Attente de 30 s de production…
+  Après : 145 commandes, 24 agrégats
+  [32mOK[0m   28 nouvelles commandes persistées
+  [32mOK[0m   15 agrégats mis à jour récemment
+  Latence moyenne émission -> PostgreSQL (order_events) : 3.78 s
+  Pause du producteur (scénario déterministe)
+  [32mOK[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1222095.56 obtenu=1222095.56
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Paiement échoué ===[0m
+  Pause du producteur (scénario déterministe)
+  PAYMENT_FAILED injecté pour ORD-TEST-0D0BBD6F (montant 26.82)
+  [32mOK[0m   CA total inchangé : attendu=1222095.56 obtenu=1222095.56
+  [32mOK[0m   Statut de la commande : PAYMENT_FAILED
+  [32mOK[0m   Contrôle : un PAYMENT_COMPLETED ajoute son montant : attendu=1222122.38 obtenu=1222122.38
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Doublon (même event_id publié deux fois) ===[0m
+  Pause du producteur (scénario déterministe)
+  event_id=a713a6e9-7831-4d35-ab05-b584e10f491e publié 2 fois, montant=15.92
+  [32mOK[0m   CA augmenté une seule fois : attendu=1222138.3 obtenu=1222138.30
+  [32mOK[0m   Lignes order_events pour cet event_id : attendu=1 obtenu=1
+  [32mOK[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1222138.30 obtenu=1222138.30
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Reprise de Spark depuis le checkpoint ===[0m
+  Reprise du producteur
+  Production pendant 20 s, puis arrêt brutal de Spark
+  Spark arrêté ; le producteur continue 30 s (Kafka bufferise)
+  Spark relancé (order_events avant reprise : 400)
+  Pause du producteur (scénario déterministe)
+  order_events après reprise : 406
+  [32mOK[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1286577.58 obtenu=1286577.58
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== PostgreSQL indisponible pendant 45 s ===[0m
+  Reprise du producteur
+  PostgreSQL arrêté ; production continue (les événements restent dans Kafka)
+  PostgreSQL rétabli
+  Redémarrages Spark : 0
+  Pause du producteur (scénario déterministe)
+  [32mOK[0m   CA agrégé = somme des PAYMENT_COMPLETED du journal : attendu=1512978.07 obtenu=1512978.07
+  [32mOK[0m   Lignes d'agrégat dupliquées : attendu=0 obtenu=0
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Événements tardifs et watermark (10 minutes) ===[0m
+  Reprise du producteur
+  Pause du producteur (scénario déterministe)
+  Paiement antidaté de 7 min (2026-11-02T11:06:47.620Z), montant 68.48
+  [32mOK[0m   Retard 7 min (< watermark) : intégré : attendu=1562850.24 obtenu=1562850.24
+  Paiement antidaté de 30 min (2026-11-02T10:44:00.626Z)
+  [32mOK[0m   Retard 30 min (> watermark) : ignoré par l'agrégat : attendu=1562850.24 obtenu=1562850.24
+  [32mOK[0m   …mais tracé dans order_events : attendu=1 obtenu=1
+  Watermark courant : 2026-11-02T11:03:31.462Z
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Événements invalides ===[0m
+  Pause du producteur (scénario déterministe)
+  CHAMP_OBLIGATOIRE_MANQUANT|1
+  JSON_INVALIDE|1
+  PRODUIT_INCONNU|1
+  [32mOK[0m   JSON_INVALIDE isolé (1)
+  [32mOK[0m   CHAMP_OBLIGATOIRE_MANQUANT isolé (1)
+  [32mOK[0m   PRODUIT_INCONNU isolé (1)
+  [32mOK[0m   CA inchangé : attendu=1562850.24 obtenu=1562850.24
+  Reprise du producteur
+
+[32mScénario réussi[0m
+
+[1m=== Suppression de pods applicatifs (producer, dashboard) ===[0m
+  Pod producer-b87548b6-stnfd supprimé
+  [32mOK[0m   Deployment producer : nouveau pod producer-b87548b6-l89c4
+  Pod dashboard-844b8948d9-9gjsb supprimé
+  [32mOK[0m   Deployment dashboard : nouveau pod dashboard-844b8948d9-dtd4x
+  [32mOK[0m   Le flux a repris (23 événements en 15 s)
+
+[32mScénario réussi[0m

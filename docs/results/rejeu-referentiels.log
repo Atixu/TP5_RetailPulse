@@ -1,0 +1,2 @@
+retailpulse-reference-loader  | 2026-11-02 10:26:54,000 INFO [reference-loader] Messages traités : {'retail-products': 2328, 'retail-customers': 2496}, invalides : 0
+retailpulse-reference-loader  | 2026-11-02 10:26:54,000 INFO [reference-loader] PostgreSQL contient 194 produits et 208 clients
