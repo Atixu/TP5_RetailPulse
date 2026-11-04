@@ -2,19 +2,35 @@
 
 Support : deck en ligne de 15 diapositives, avec notes de l'orateur, exportable en PDF et en PPTX
 depuis la page : https://claude.ai/artifact/J7TrzaQdsw5Qyhz43TeRZc
-(privé par défaut : à partager depuis le menu *Share* avant la soutenance). Remplacer
-`[Prénom Nom]` sur la couverture.
+(privé par défaut : à partager depuis le menu *Share* avant la soutenance).
 
-## Déroulé proposé
+## Déroulé (15 minutes)
 
-| Temps | Diapositives | Qui |
+Les notes de l'orateur de chaque diapositive contiennent le **texte complet à dire**, précédé de
+son créneau et de l'orateur. Le script fait environ 2 000 mots, soit 14 min 25 s à un débit oral
+moyen de 140 mots par minute, plus 30 s d'actions pour la démo. Total : 14 min 55 s.
+
+| Créneau | Diapositive | Qui |
 |---|---|---|
-| 0:00 – 2:00 | Couverture, problématique, architecture | membre 1 |
-| 2:00 – 6:00 | Collecte, Kafka, contrat d'événements | membre 1 |
-| 6:00 – 9:00 | Spark, fiabilité (watermark, dédup, idempotence), PostgreSQL, dashboard | membre 2 |
-| 9:00 – 10:30 | Kubernetes | membre 2 |
-| 10:30 – 13:00 | Tests de résilience et performances | membre 1 |
-| 13:00 – 15:00 | Limites, démonstration de bout en bout | les deux |
+| 0:00 – 0:30 | Couverture | William |
+| 0:30 – 1:30 | Problématique | William |
+| 1:30 – 2:40 | Architecture | William |
+| 2:40 – 3:45 | Collecte et référentiels | William |
+| 3:45 – 4:45 | Kafka | William |
+| 4:45 – 5:55 | Contrat des événements | William |
+| 5:55 – 7:10 | Spark Structured Streaming | Guillaume |
+| 7:10 – 8:20 | Fiabilité (watermark, doublons, idempotence) | Guillaume |
+| 8:20 – 9:00 | PostgreSQL | Guillaume |
+| 9:00 – 9:35 | Tableau de bord | Guillaume |
+| 9:35 – 10:40 | Kubernetes | Guillaume |
+| 10:40 – 11:50 | Tests de résilience | William |
+| 11:50 – 13:00 | Performances | Guillaume |
+| 13:00 – 13:40 | Limites | Guillaume |
+| 13:40 – 14:55 | Conclusion et démo | les deux |
+
+Temps de parole : William ≈ 7 min 10, Guillaume ≈ 6 min 35, conclusion commune ≈ 1 min 15.
+Si vous parlez plus lentement (130 mots/min), le script dure environ 15 min 30 : raccourcissez alors la
+démo à l'injection et à l'affichage sur le dashboard.
 
 ## Démonstration de bout en bout (Kubernetes)
 
