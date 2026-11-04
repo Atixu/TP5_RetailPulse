@@ -36,7 +36,7 @@ démo à l'injection et à l'affichage sur le dashboard.
 
 ### Avant la soutenance (5 minutes avant)
 
-1. Démarrer Docker Desktop et attendre que Kubernetes soit *running* (icône verte).
+1. Démarrer Docker Desktop, puis le cluster : `minikube start` (≈ 1 min ; les données sont conservées).
 2. Ouvrir un terminal **dans le dossier du projet** :
    ```bash
    cd chemin/vers/TP5_RetailPulse
@@ -89,7 +89,8 @@ MODE=k8s scripts/scenarios/03-doublon.sh
 | Symptôme | Solution |
 |---|---|
 | Le dashboard ne s'affiche pas | `scripts/k8s-expose.sh` |
-| `kubectl` : *connection refused* | Docker Desktop ou Kubernetes pas encore démarré : attendre |
+| `kubectl` : *connection refused* | `minikube status` ; si arrêté : `minikube start` |
+| `kubectl` vise le mauvais cluster | `kubectl config use-context minikube` |
 | Pods en `CrashLoopBackOff` juste après le démarrage | attendre 1 à 2 min (Spark attend Kafka et PostgreSQL) |
 | `jobs.batch "collector" not found` | `kubectl apply -f k8s/jobs/collector-job.yaml` (rejouable sans doublon) |
 

@@ -39,7 +39,8 @@ DummyJSON ─► Collector ─► Kafka (KRaft) ─► Reference Loader ─► P
 ## Prérequis
 
 * Docker Desktop (testé avec Docker 29, 8 Go de RAM alloués à la VM) et Docker Compose v2.
-* Pour Kubernetes : Docker Desktop → *Settings → Kubernetes → Enable Kubernetes*, et `kubectl`.
+* Pour Kubernetes : `kubectl` et **minikube** (`brew install minikube`). Docker Desktop
+  Kubernetes fonctionne aussi (voir [docs/kubernetes.md](docs/kubernetes.md)).
 * Accès Internet (API DummyJSON et téléchargement des images).
 
 ## Configuration
@@ -90,17 +91,21 @@ docker compose down
 docker compose down -v
 ```
 
-## Déploiement Kubernetes (Docker Desktop)
+## Déploiement Kubernetes (minikube)
 
 ```bash
+minikube start --driver=docker --cpus=4 --memory=6144   # cluster local ; kubectl bascule dessus
 scripts/build-images.sh                 # retailpulse-{app,spark,dashboard}:1.0.0
 docker compose down                     # libère les ressources de la VM Docker
-scripts/k8s-deploy.sh                   # déploiement ordonné + attente des Jobs
+scripts/k8s-deploy.sh                   # images, manifestes, attente des Jobs, accès depuis l'hôte
 scripts/k8s-status.sh                   # pods, services, PVC, logs
 ```
 
 * Tableau de bord : http://localhost:30851 ; Spark UI : http://localhost:30440.
-* Suppression complète : `scripts/k8s-delete.sh`.
+* Après un `minikube stop` / `minikube start` : relancer `scripts/k8s-expose.sh`.
+* Suppression : `scripts/k8s-delete.sh` (namespace) ou `minikube delete` (cluster).
+* Les scripts détectent le contexte `kubectl` : ils fonctionnent aussi sur Docker Desktop
+  Kubernetes (`kubectl config use-context docker-desktop`).
 
 ## Tests
 

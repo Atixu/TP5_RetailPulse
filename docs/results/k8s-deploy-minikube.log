@@ -1,0 +1,97 @@
+Cluster ciblé : minikube (minikube)
+
+[1m>> Chargement des images dans le cluster[0m
+minikube image load retailpulse-app:1.0.0
+minikube image load retailpulse-spark:1.0.0
+minikube image load retailpulse-dashboard:1.0.0
+docker.io/library/retailpulse-spark:1.0.0
+docker.io/library/retailpulse-dashboard:1.0.0
+docker.io/library/retailpulse-app:1.0.0
+
+[1m>> Namespace, configuration et secret[0m
+namespace/retailpulse created
+configmap/retailpulse-config created
+secret/retailpulse-db created
+configmap/postgres-init created
+
+[1m>> Kafka et PostgreSQL[0m
+service/kafka-headless created
+service/kafka created
+statefulset.apps/kafka created
+service/postgres created
+statefulset.apps/postgres created
+Waiting for 1 pods to be ready...
+partitioned roll out complete: 1 new pods have been updated...
+Waiting for 1 pods to be ready...
+partitioned roll out complete: 1 new pods have been updated...
+
+[1m>> Job collector (DummyJSON -> Kafka)[0m
+job.batch/collector created
+job.batch/collector condition met
+  },
+  "delivered": 402,
+  "delivery_failures": 0
+}
+2026-11-04 08:59:04,436 INFO [collector] Collecte terminée : 402 messages livrés
+
+[1m>> Job reference-loader (Kafka -> PostgreSQL)[0m
+job.batch/reference-loader created
+job.batch/reference-loader condition met
+2026-11-04 08:59:11,257 INFO [reference-loader] Messages traités : {'retail-products': 194, 'retail-customers': 208}, invalides : 0
+2026-11-04 08:59:11,257 INFO [reference-loader] PostgreSQL contient 194 produits et 208 clients
+
+[1m>> Producteur, Spark et tableau de bord[0m
+deployment.apps/producer created
+persistentvolumeclaim/spark-checkpoints created
+service/spark-ui created
+deployment.apps/spark created
+service/dashboard created
+deployment.apps/dashboard created
+deployment.apps/toolbox created
+Waiting for deployment "producer" rollout to finish: 0 of 1 updated replicas are available...
+deployment "producer" successfully rolled out
+Waiting for deployment "spark" rollout to finish: 0 of 1 updated replicas are available...
+deployment "spark" successfully rolled out
+deployment "dashboard" successfully rolled out
+
+[1m>> État du namespace[0m
+NAME                             READY   STATUS      RESTARTS   AGE
+pod/collector-t9rqd              0/1     Completed   0          33s
+pod/dashboard-7678998d8c-4x55t   1/1     Running     0          21s
+pod/kafka-0                      1/1     Running     0          85s
+pod/postgres-0                   1/1     Running     0          85s
+pod/producer-5fb8b97cfd-tw5g6    1/1     Running     0          21s
+pod/reference-loader-nnt28       0/1     Completed   0          28s
+pod/spark-54769549dd-tvj7z       1/1     Running     0          21s
+pod/toolbox-8568b9558c-7rzqg     1/1     Running     0          21s
+
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/dashboard   1/1     1            1           21s
+deployment.apps/producer    1/1     1            1           21s
+deployment.apps/spark       1/1     1            1           21s
+deployment.apps/toolbox     1/1     1            1           21s
+
+NAME                        READY   AGE
+statefulset.apps/kafka      1/1     85s
+statefulset.apps/postgres   1/1     85s
+
+NAME                         STATUS     COMPLETIONS   DURATION   AGE
+job.batch/collector          Complete   1/1           5s         33s
+job.batch/reference-loader   Complete   1/1           7s         28s
+
+NAME                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+service/dashboard        NodePort    10.107.253.117   <none>        8501:30851/TCP       21s
+service/kafka            ClusterIP   10.100.142.109   <none>        29092/TCP            85s
+service/kafka-headless   ClusterIP   None             <none>        29092/TCP,9093/TCP   85s
+service/postgres         ClusterIP   10.107.105.30    <none>        5432/TCP             85s
+service/spark-ui         NodePort    10.111.132.196   <none>        4040:30440/TCP       21s
+
+NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-kafka-0        Bound    pvc-afa9d62d-740a-4783-bcc3-eca265a63527   2Gi        RWO            standard       <unset>                 85s
+persistentvolumeclaim/data-postgres-0     Bound    pvc-50f07863-f1db-4ad8-880e-a228784c09cf   2Gi        RWO            standard       <unset>                 85s
+persistentvolumeclaim/spark-checkpoints   Bound    pvc-55d975c8-0b2e-4610-ba28-6f368329fca5   1Gi        RWO            standard       <unset>                 21s
+
+[1m>> Accès depuis l'hôte[0m
+http://localhost:30851 -> NodePort minikube:30851 (minikube)
+http://localhost:30440 -> NodePort minikube:30440 (minikube)
+Tableau de bord : http://localhost:30851   Spark UI : http://localhost:30440

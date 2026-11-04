@@ -1,0 +1,85 @@
+NAME                             READY   STATUS      RESTARTS   AGE     IP            NODE       NOMINATED NODE   READINESS GATES
+pod/collector-t9rqd              0/1     Completed   0          7m58s   10.244.0.5    minikube   <none>           <none>
+pod/dashboard-7678998d8c-4zv7z   1/1     Running     0          39s     10.244.0.17   minikube   <none>           <none>
+pod/kafka-0                      1/1     Running     0          8m50s   10.244.0.3    minikube   <none>           <none>
+pod/postgres-0                   1/1     Running     0          2m47s   10.244.0.14   minikube   <none>           <none>
+pod/producer-5fb8b97cfd-9lkwx    1/1     Running     0          39s     10.244.0.16   minikube   <none>           <none>
+pod/reference-loader-nnt28       0/1     Completed   0          7m53s   10.244.0.6    minikube   <none>           <none>
+pod/spark-54769549dd-bkl89       1/1     Running     0          4m30s   10.244.0.12   minikube   <none>           <none>
+pod/toolbox-8568b9558c-7rzqg     1/1     Running     0          7m46s   10.244.0.10   minikube   <none>           <none>
+
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                        SELECTOR
+deployment.apps/dashboard   1/1     1            1           7m46s   dashboard    retailpulse-dashboard:1.0.0   app=dashboard
+deployment.apps/producer    1/1     1            1           7m46s   producer     retailpulse-app:1.0.0         app=producer
+deployment.apps/spark       1/1     1            1           7m46s   spark        retailpulse-spark:1.0.0       app=spark
+deployment.apps/toolbox     1/1     1            1           7m46s   toolbox      retailpulse-app:1.0.0         app=toolbox
+
+NAME                        READY   AGE     CONTAINERS   IMAGES
+statefulset.apps/kafka      1/1     8m50s   kafka        apache/kafka:4.0.0
+statefulset.apps/postgres   1/1     8m50s   postgres     postgres:16-alpine
+
+NAME                         STATUS     COMPLETIONS   DURATION   AGE     CONTAINERS         IMAGES                  SELECTOR
+job.batch/collector          Complete   1/1           5s         7m58s   collector          retailpulse-app:1.0.0   batch.kubernetes.io/controller-uid=c41be6e9-3ae1-4ce7-838c-e104b9580983
+job.batch/reference-loader   Complete   1/1           7s         7m53s   reference-loader   retailpulse-app:1.0.0   batch.kubernetes.io/controller-uid=c5d318ec-86cf-4d91-9400-fc8914a4a650
+
+NAME                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE     SELECTOR
+service/dashboard        NodePort    10.107.253.117   <none>        8501:30851/TCP       7m46s   app=dashboard
+service/kafka            ClusterIP   10.100.142.109   <none>        29092/TCP            8m50s   app=kafka
+service/kafka-headless   ClusterIP   None             <none>        29092/TCP,9093/TCP   8m50s   app=kafka
+service/postgres         ClusterIP   10.107.105.30    <none>        5432/TCP             8m50s   app=postgres
+service/spark-ui         NodePort    10.111.132.196   <none>        4040:30440/TCP       7m46s   app=spark
+
+NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE     VOLUMEMODE
+persistentvolumeclaim/data-kafka-0        Bound    pvc-afa9d62d-740a-4783-bcc3-eca265a63527   2Gi        RWO            standard       <unset>                 8m50s   Filesystem
+persistentvolumeclaim/data-postgres-0     Bound    pvc-50f07863-f1db-4ad8-880e-a228784c09cf   2Gi        RWO            standard       <unset>                 8m50s   Filesystem
+persistentvolumeclaim/spark-checkpoints   Bound    pvc-55d975c8-0b2e-4610-ba28-6f368329fca5   1Gi        RWO            standard       <unset>                 7m46s   Filesystem
+
+NAME                           DATA   AGE
+configmap/kube-root-ca.crt     1      8m50s
+configmap/postgres-init        1      8m50s
+configmap/retailpulse-config   21     8m50s
+
+NAME                    TYPE     DATA   AGE
+secret/retailpulse-db   Opaque   3      8m50s
+
+67s         Normal    SuccessfulDelete        replicaset/producer-5fb8b97cfd            Deleted pod: producer-5fb8b97cfd-7nrm6
+39s         Normal    Created                 pod/producer-5fb8b97cfd-9lkwx             Container created
+39s         Normal    Pulled                  pod/producer-5fb8b97cfd-9lkwx             Container image "retailpulse-app:1.0.0" already present on machine and can be accessed by the pod
+39s         Normal    ScalingReplicaSet       deployment/producer                       Scaled up replica set producer-5fb8b97cfd from 0 to 1
+39s         Normal    SuccessfulCreate        replicaset/producer-5fb8b97cfd            Created pod: producer-5fb8b97cfd-9lkwx
+39s         Normal    SuccessfulCreate        replicaset/producer-5fb8b97cfd            Created pod: producer-5fb8b97cfd-7qx2l
+39s         Normal    Scheduled               pod/producer-5fb8b97cfd-9lkwx             Successfully assigned retailpulse/producer-5fb8b97cfd-9lkwx to minikube
+39s         Normal    Scheduled               pod/producer-5fb8b97cfd-7qx2l             Successfully assigned retailpulse/producer-5fb8b97cfd-7qx2l to minikube
+39s         Normal    Started                 pod/producer-5fb8b97cfd-9lkwx             Container started
+39s         Normal    SuccessfulCreate        replicaset/dashboard-7678998d8c           Created pod: dashboard-7678998d8c-4zv7z
+39s         Normal    Killing                 pod/dashboard-7678998d8c-4x55t            Stopping container dashboard
+39s         Normal    Scheduled               pod/dashboard-7678998d8c-4zv7z            Successfully assigned retailpulse/dashboard-7678998d8c-4zv7z to minikube
+38s         Normal    Pulled                  pod/dashboard-7678998d8c-4zv7z            Container image "retailpulse-dashboard:1.0.0" already present on machine and can be accessed by the pod
+38s         Normal    Created                 pod/dashboard-7678998d8c-4zv7z            Container created
+38s         Normal    Started                 pod/dashboard-7678998d8c-4zv7z            Container started
+
+--- logs job/collector
+  "delivery_failures": 0
+}
+2026-11-04 08:59:04,436 INFO [collector] Collecte terminée : 402 messages livrés
+
+--- logs job/reference-loader
+2026-11-04 08:59:08,103 INFO [reference-loader] Offsets de fin à atteindre : {('retail-products', 0): 194, ('retail-customers', 0): 208}
+2026-11-04 08:59:11,257 INFO [reference-loader] Messages traités : {'retail-products': 194, 'retail-customers': 208}, invalides : 0
+2026-11-04 08:59:11,257 INFO [reference-loader] PostgreSQL contient 194 produits et 208 clients
+
+--- logs deploy/producer
+2026-11-04 09:06:22,444 INFO [common.kafka_utils] Topic déjà existant : retail-orders
+2026-11-04 09:06:22,444 INFO [common.kafka_utils] Topic déjà existant : retail-order-events
+2026-11-04 09:06:22,453 INFO [producer] Référentiels chargés : 194 produits, 208 clients
+
+--- logs deploy/spark
+2026-11-04 09:06:56,193 INFO [retailpulse.spark] PROGRESS orders-detail batch=54 rows=9 in=1.8/s proc=7.9/s duration=1136ms wm=None
+2026-11-04 09:06:56,726 INFO [retailpulse.sink] [sales-aggregates] batch 58 : 3 fenêtres/catégories upsertées
+2026-11-04 09:06:56,810 INFO [retailpulse.spark] PROGRESS sales-aggregates batch=58 rows=5 in=1.0/s proc=2.9/s duration=1733ms wm=2026-11-04T08:56:49.485Z
+
+--- logs deploy/dashboard
+
+  URL: http://0.0.0.0:8501
+
+(kubectl top indisponible : metrics-server non installé)

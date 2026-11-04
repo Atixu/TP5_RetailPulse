@@ -9,8 +9,11 @@ cd "$(dirname "$0")/.."
 NS=retailpulse
 step() { printf '\n\033[1m>> %s\033[0m\n' "$*"; }
 
-step "Import des images dans le nœud kind (Docker Desktop)"
-if kubectl get nodes -o name | grep -q desktop-control-plane; then scripts/k8s-load-images.sh; fi
+source scripts/k8s-cluster.sh
+echo "Cluster ciblé : $CONTEXT ($CLUSTER_KIND)"
+
+step "Chargement des images dans le cluster"
+scripts/k8s-load-images.sh
 
 step "Namespace, configuration et secret"
 kubectl apply -f k8s/base/namespace.yaml -f k8s/base/configmap.yaml
@@ -44,5 +47,5 @@ kubectl -n $NS rollout status deploy/dashboard --timeout=180s
 step "État du namespace"
 kubectl -n $NS get pods,deploy,statefulset,jobs,svc,pvc
 step "Accès depuis l'hôte"
-if kubectl get nodes -o name | grep -q desktop-control-plane; then scripts/k8s-expose.sh; fi
+scripts/k8s-expose.sh
 echo "Tableau de bord : http://localhost:30851   Spark UI : http://localhost:30440"

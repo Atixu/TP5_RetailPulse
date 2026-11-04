@@ -1,30 +1,50 @@
 # Déploiement Kubernetes
 
-Cluster : Kubernetes de Docker Desktop, **mode kind**, 1 nœud (`desktop-control-plane`),
-v1.36.1, arm64. Namespace : `retailpulse`. Toute la plateforme est dans le cluster.
+Toute la plateforme est déployée dans le namespace `retailpulse`. Les **mêmes manifestes** ont été
+déployés et testés sur deux clusters locaux à un nœud :
 
-## Procédure
+| Cluster | Version | Statut |
+|---|---|---|
+| **minikube** (pilote docker, 4 CPU, 6 Go) — cible principale | minikube v1.39.0, Kubernetes v1.37.0 | déployé, 8 scénarios de résilience rejoués |
+| Docker Desktop Kubernetes (mode kind) | Kubernetes v1.36.1 | déployé, 8 scénarios de résilience |
+
+Les scripts détectent le cluster visé par le contexte `kubectl` courant (`scripts/k8s-cluster.sh`)
+et adaptent les deux seules étapes qui diffèrent : le chargement des images et l'accès depuis l'hôte.
+
+## Procédure avec minikube
 
 ```bash
-cp .env.example .env              # mot de passe PostgreSQL (jamais versionné)
-scripts/build-images.sh           # retailpulse-app / -spark / -dashboard : 1.0.0
-docker compose down               # libère la VM Docker
-scripts/k8s-deploy.sh
+brew install minikube                                   # une seule fois
+minikube start --driver=docker --cpus=4 --memory=6144   # crée le cluster et bascule kubectl dessus
+cp .env.example .env                                    # mot de passe PostgreSQL (jamais versionné)
+scripts/build-images.sh                                 # retailpulse-app / -spark / -dashboard : 1.0.0
+docker compose down                                     # libère la mémoire de Docker
+scripts/k8s-deploy.sh                                   # ≈ 3 min
 ```
 
-`k8s-deploy.sh` enchaîne les étapes suivantes :
-1. **import des images** dans le containerd du nœud kind (`scripts/k8s-load-images.sh`). En mode
-   kind, le nœud est un conteneur avec son propre magasin d'images et ne voit pas les images
-   construites localement ;
+Arrêter sans rien perdre : `minikube stop`. Reprendre : `minikube start`, puis `scripts/k8s-expose.sh`.
+Tout supprimer : `scripts/k8s-delete.sh` (le namespace) ou `minikube delete` (le cluster).
+
+Avec Docker Desktop : activer Kubernetes dans les réglages, `kubectl config use-context docker-desktop`,
+puis `scripts/build-images.sh && scripts/k8s-deploy.sh`.
+
+Les deux clusters ne doivent pas faire tourner RetailPulse en même temps : la VM Docker a 8 Go.
+
+## Ce que fait `k8s-deploy.sh`
+
+1. **chargement des images** (`scripts/k8s-load-images.sh`) : `minikube image load` sur minikube,
+   import dans le containerd du nœud sur Docker Desktop (kind). Dans les deux cas, le nœud est un
+   conteneur qui a son propre magasin d'images et ne voit pas les images construites localement ;
 2. Namespace, ConfigMap `retailpulse-config`, Secret `retailpulse-db` créé depuis `.env`
    (`scripts/k8s-secret.sh`), ConfigMap `postgres-init` créée depuis `sql/init.sql` ;
 3. StatefulSets `kafka` et `postgres`, puis attente de la disponibilité ;
 4. Job `collector`, attente de `Complete`, puis Job `reference-loader`, attente de `Complete` ;
 5. Deployments `producer`, `spark`, `dashboard` et `toolbox` ;
-6. **accès depuis l'hôte** (`scripts/k8s-expose.sh`) : en mode kind, Docker Desktop ne publie pas
-   les NodePorts du nœud vers macOS. Un relais `socat` sur le réseau Docker `kind` publie
-   `localhost:30851` et `localhost:30440` vers les NodePorts du nœud, comme le feraient les
-   `extraPortMappings` de kind. Le trafic passe donc bien par les Services NodePort.
+6. **accès depuis l'hôte** (`scripts/k8s-expose.sh`) : sur macOS, ni minikube (pilote docker) ni
+   Docker Desktop (kind) ne publient les NodePorts du nœud. Un relais `socat`, branché sur le réseau
+   Docker du nœud (`minikube` ou `kind`), publie `localhost:30851` et `localhost:30440` vers les
+   NodePorts. Le trafic passe donc bien par les Services NodePort. Équivalent sans relais sur
+   minikube : `minikube service dashboard -n retailpulse`.
 
 | Accès | URL |
 |---|---|
@@ -77,7 +97,22 @@ persistentvolumeclaim/spark-checkpoints   Bound   1Gi   RWO   standard
 Contrôle fonctionnel juste après le déploiement : 194 produits, et un CA agrégé de 251 016,84 USD,
 identique à la somme des `PAYMENT_COMPLETED` d'`order_events`. `curl http://localhost:30851/_stcore/health` → 200.
 
-## Tests de résilience sur Kubernetes
+## Résultats sur minikube (cible principale)
+
+Déploiement par `scripts/k8s-deploy.sh` : [results/k8s-deploy-minikube.log](results/k8s-deploy-minikube.log),
+réussi du premier essai, en environ 2 minutes après le chargement des images. Il a donné 2 Jobs
+`Complete`, 6 pods `Running` et 3 PVC `Bound` (classe `standard` de minikube). État après les
+tests : [results/k8s-status-minikube.log](results/k8s-status-minikube.log).
+
+`MODE=k8s scripts/scenarios/run-all.sh` →
+[results/scenarios-minikube-20261104-100648.log](results/scenarios-minikube-20261104-100648.log) :
+**8 scénarios sur 8 réussis**, avec les mêmes manipulations que ci-dessous. Faits marquants :
+- latence moyenne émission → PostgreSQL de 4,1 s ;
+- Spark recréé avec son PVC de checkpoint sans double comptage ;
+- PostgreSQL coupé 45 s, puis repris sans redémarrage de Spark ;
+- producer et dashboard recréés, le flux reprenant avec 19 événements en 15 s.
+
+## Tests de résilience sur Kubernetes (Docker Desktop)
 
 `MODE=k8s scripts/scenarios/run-all.sh` → [results/scenarios-k8s-20261102-120837.log](results/scenarios-k8s-20261102-120837.log) :
 **8 scénarios sur 8 réussis**.
