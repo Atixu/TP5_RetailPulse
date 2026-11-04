@@ -246,14 +246,23 @@ est donc sans effet visible.
 
 ## 7. Tableau de bord
 
-Streamlit lit PostgreSQL en lecture seule toutes les 10 s (`st.fragment(run_every=10)`). Il affiche :
-* le CA total, les commandes (totales, payées, échouées), les articles vendus et le nombre de catégories ;
-* la courbe du CA par fenêtre de 5 min, la répartition et le top 10 des catégories ;
-* les dernières commandes avec leur statut et les dernières agrégations ;
-* l'heure d'actualisation et l'état des données : à jour, figées (plus de 120 s) ou absentes.
+Streamlit lit PostgreSQL en lecture seule toutes les 10 s (`st.fragment(run_every=10)`). Un filtre
+de période (1 h, 6 h, 24 h, tout) en haut de page s'applique à toute la page. Le dashboard affiche :
+* **Activité commerciale** : CA et commandes payées (avec variation par rapport à la période
+  précédente), panier moyen, taux de paiement réussi, articles vendus, clients acheteurs ;
+* **CA par fenêtre de 5 minutes** (barres couvrant chaque fenêtre) et **top 10 des catégories**
+  (barres horizontales classées, valeur en bout de barre) ;
+* **Santé du pipeline** sur les 5 dernières minutes : débit traité, latence médiane et p95
+  (émission → base), ancienneté du dernier agrégat écrit, messages rejetés ;
+* le **détail** en onglets : dernières commandes avec leur statut, dernières agrégations, toutes
+  les catégories ;
+* un badge d'état (données à jour, figées depuis plus de 120 s, base injoignable) et une section
+  « Définitions des indicateurs ».
 
-La devise est indiquée partout. Le dashboard **ne recalcule aucun agrégat métier** : il somme
-seulement les lignes de `sales_aggregates` déjà calculées par Spark.
+La présentation suit une palette unique, validée pour le contraste : une seule teinte pour les
+séries, des couleurs d'état réservées aux états et toujours accompagnées d'un libellé, sans
+emojis. Le dashboard **ne recalcule aucun agrégat métier** : il additionne les lignes de
+`sales_aggregates` déjà calculées par Spark, compte les commandes par statut et en tire des ratios.
 
 ## 8. Architecture Kubernetes
 
