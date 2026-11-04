@@ -278,7 +278,7 @@ flowchart TB
 |---|---|
 | Kafka | StatefulSet avec Service headless et ClusterIP `kafka:29092`, PVC, initContainer qui corrige les droits, readiness `kafka-broker-api-versions`, liveness TCP |
 | PostgreSQL | StatefulSet, PVC (`PGDATA` en sous-dossier), schéma via ConfigMap `postgres-init`, probes `pg_isready` |
-| Collector / Reference Loader | Jobs (`backoffLimit: 4`, `restartPolicy: OnFailure`, TTL 24 h), enchaînés par `k8s-deploy.sh` (`kubectl wait --for=condition=complete`) |
+| Collector / Reference Loader | Jobs (`backoffLimit: 4`, `restartPolicy: OnFailure`, conservés pour consulter leurs logs), enchaînés par `k8s-deploy.sh` (`kubectl wait --for=condition=complete`) |
 | Producer | Deployment, `terminationGracePeriodSeconds: 20` (SIGTERM puis flush) |
 | Spark | Deployment à 1 réplica en stratégie `Recreate` (un PVC RWO ne s'attache qu'à un pod), PVC de checkpoint, readiness et liveness sur l'UI 4040 |
 | Dashboard | Deployment avec Service NodePort 30851, probes `/_stcore/health` |
