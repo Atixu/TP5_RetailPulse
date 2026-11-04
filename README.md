@@ -12,6 +12,8 @@ DummyJSON ─► Collector ─► Kafka (KRaft) ─► Reference Loader ─► P
          Spark Structured Streaming ─► PostgreSQL (commandes, agrégats) ─► Dashboard Streamlit
 ```
 
+![Tableau de bord RetailPulse](docs/img/dashboard.png)
+
 * Dossier d'architecture, choix et justifications : [docs/architecture.md](docs/architecture.md)
 * Tests de résilience : [docs/tests-resilience.md](docs/tests-resilience.md)
 * Benchmarks : [docs/benchmarks.md](docs/benchmarks.md)

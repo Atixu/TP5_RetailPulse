@@ -6,6 +6,7 @@ dashboard fait des sommes d'affichage sur une période, des comptages sur le
 détail des commandes et des ratios entre ces valeurs (définitions en bas de page).
 Actualisation automatique toutes les REFRESH_SECONDS secondes (10 par défaut).
 """
+import html
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -34,6 +35,7 @@ SERIES = "#2a78d6"
 INK, INK_2, MUTED = "#0b0b0b", "#52514e", "#898781"
 GRID, AXIS, SURFACE = "#e1e0d9", "#c3c2b7", "#fcfcfb"
 STATUS_GOOD, STATUS_WARNING, STATUS_CRITICAL = "#0ca30c", "#fab219", "#d03b3b"
+DELTA_UP = "#006300"  # texte « hausse » lisible sur fond clair
 
 STATUS_LABELS = {"PAID": "Payée", "CREATED": "En attente de paiement",
                  "PAYMENT_FAILED": "Paiement refusé", "CANCELLED": "Annulée"}
@@ -57,7 +59,8 @@ QUERIES = {
                count(*) FILTER (WHERE status = 'PAID')                AS paid,
                count(*) FILTER (WHERE status = 'PAYMENT_FAILED')      AS failed,
                count(*) FILTER (WHERE status = 'CANCELLED')           AS cancelled,
-               count(DISTINCT customer_id) FILTER (WHERE status = 'PAID') AS customers
+               count(DISTINCT customer_id) FILTER (WHERE status = 'PAID') AS customers,
+               (SELECT count(*) FROM customers)                      AS all_customers
         FROM orders
         WHERE (%(since)s::timestamptz IS NULL OR created_at >= %(since)s)
     """,
@@ -133,10 +136,28 @@ def percent(value):
 
 
 def delta(current, previous):
+    """Variation vs la période précédente, en HTML : flèche + texte + couleur (jamais la couleur seule)."""
     if previous is None or float(previous) == 0:
         return None
     change = (float(current) - float(previous)) / float(previous) * 100
-    return f"{'+' if change >= 0 else ''}{number(change, 1)} % vs période précédente"
+    up = change >= 0
+    color = DELTA_UP if up else STATUS_CRITICAL
+    arrow = "▲" if up else "▼"
+    sign = "+" if up else "−"
+    return (f'<span style="color:{color}">{arrow} {sign}{number(abs(change), 1)} %</span>'
+            f' vs période préc.')
+
+
+def tile(label, value, note=""):
+    """Tuile d'indicateur à hauteur fixe : libellé, valeur, une ligne de contexte."""
+    return (f'<div class="rp-tile"><div class="rp-label">{html.escape(label)}</div>'
+            f'<div class="rp-value">{html.escape(value)}</div>'
+            f'<div class="rp-tnote">{note or "&nbsp;"}</div></div>')
+
+
+def tile_row(tiles):
+    for column, (label, value, note) in zip(st.columns(len(tiles)), tiles):
+        column.markdown(tile(label, value, note), unsafe_allow_html=True)
 
 
 def ratio(numerator, denominator):
@@ -149,11 +170,13 @@ def base_chart(data):
     return alt.Chart(data)
 
 
+CHART_HEIGHT = 300  # même hauteur pour les deux graphiques placés côte à côte
+
+
 def configure(chart):
-    # Fond et marge au niveau du graphique final : Altair les refuse sur les
-    # sous-graphiques d'une superposition (barres + étiquettes).
+    # Pas de padding ni de background : le composant Streamlit les gère lui-même
+    # (un padding numérique fait planter son rendu côté navigateur).
     return (chart
-            .properties(background=SURFACE, padding=12)
             .configure_view(strokeWidth=0)
             .configure_axis(labelColor=MUTED, titleColor=INK_2, gridColor=GRID,
                             domainColor=AXIS, tickColor=AXIS, labelFontSize=12,
@@ -176,7 +199,7 @@ def timeline_chart(timeline):
                              title="Fenêtre (UTC)", format="%d/%m %H:%M"),
                  alt.Tooltip("revenue:Q", title=f"CA ({CURRENCY})", format=",.2f"),
                  alt.Tooltip("items:Q", title="Articles vendus", format=",")],
-    ).properties(height=280))
+    ).properties(height=CHART_HEIGHT))
 
 
 def category_chart(by_category, top=10):
@@ -184,7 +207,9 @@ def category_chart(by_category, top=10):
     bars = base_chart(data).mark_bar(
         color=SERIES, cornerRadiusTopRight=4, cornerRadiusBottomRight=4, height={"band": 0.7},
     ).encode(
-        x=alt.X("revenue:Q", title=None, axis=alt.Axis(format="~s", tickCount=4)),
+        # 18 % de marge à droite pour que l'étiquette de la plus grande barre ne soit pas coupée.
+        x=alt.X("revenue:Q", title=None, axis=alt.Axis(format="~s", tickCount=4),
+                scale=alt.Scale(domain=[0, float(data["revenue"].max()) * 1.18], nice=False)),
         y=alt.Y("category:N", sort="-x", title=None,
                 axis=alt.Axis(labelLimit=180, labelColor=INK_2, domain=False, ticks=False)),
         tooltip=[alt.Tooltip("category:N", title="Catégorie"),
@@ -194,7 +219,7 @@ def category_chart(by_category, top=10):
     # Libellé de valeur uniquement en bout de barre (lecture sans survol).
     labels = bars.mark_text(align="left", dx=6, color=INK_2, fontSize=12).encode(
         text="label:N")
-    return configure((bars + labels).properties(height=max(160, 30 * len(data))))
+    return configure((bars + labels).properties(height=CHART_HEIGHT))
 
 
 # --- Mise en page ------------------------------------------------------------------
@@ -204,10 +229,15 @@ st.markdown(
     """
     <style>
       .block-container {padding-top: 2rem; max-width: 1400px;}
-      [data-testid="stMetricValue"] {font-size: 1.75rem; font-weight: 600;}
-      [data-testid="stMetricLabel"] p {color: #52514e; font-size: 0.85rem;}
-      [data-testid="stMetricDelta"] {font-size: 0.8rem;}
       h3 {font-weight: 600; font-size: 1.05rem; margin-top: 0.5rem;}
+      .rp-tile {height: 118px; box-sizing: border-box; padding: 14px 16px; background: #fcfcfb;
+                border: 1px solid rgba(11,11,11,.10); border-radius: 8px;
+                display: flex; flex-direction: column; justify-content: space-between;}
+      .rp-label, .rp-tnote {white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+      .rp-label {color: #52514e; font-size: .85rem;}
+      .rp-value {color: #0b0b0b; font-size: 1.6rem; font-weight: 600; line-height: 1.2;
+                 white-space: nowrap;}
+      .rp-tnote {color: #898781; font-size: .8rem;}
       .rp-sub {color: #52514e; margin-top: -0.75rem;}
       .rp-status {display: inline-flex; align-items: center; gap: .5rem; color: #0b0b0b;
                   font-size: .9rem; padding: .35rem .75rem; border-radius: 999px;
@@ -267,27 +297,21 @@ def render(period_label):
 
     # Activité commerciale
     st.subheader("Activité commerciale" + ("" if span is None else f" · dernières {period_label}"))
-    row = st.columns(6)
     refused = int(orders["failed"]) + int(orders["cancelled"])
-    tiles = [
+    tile_row([
         (f"Chiffre d'affaires ({CURRENCY})", number(sales["revenue"], 2),
-         delta(sales["revenue"], prev_revenue), None),
-        ("Commandes payées", number(orders["paid"]), delta(orders["paid"], prev_paid),
-         f"sur {number(orders['total'])} commandes créées"),
+         delta(sales["revenue"], prev_revenue) or "paiements réussis"),
+        ("Commandes payées", number(orders["paid"]),
+         delta(orders["paid"], prev_paid) or f"sur {number(orders['total'])} créées"),
         (f"Panier moyen ({CURRENCY})",
          "—" if not orders["paid"] else number(float(sales["revenue"]) / int(orders["paid"]), 2),
-         None, None),
-        ("Taux de paiement réussi", percent(ratio(orders["paid"], settled)), None,
+         "par commande payée"),
+        ("Taux de paiement réussi", percent(ratio(orders["paid"], settled)),
          f"{number(refused)} refusées ou annulées"),
-        ("Articles vendus", number(sales["items"]), None,
-         f"dans {number(sales['categories'])} catégories"),
-        ("Clients acheteurs", number(orders["customers"]), None, None),
-    ]
-    for column, (label, value, change, note) in zip(row, tiles):
-        with column.container(border=True):
-            st.metric(label, value, change)
-            if note:
-                st.caption(note)
+        ("Articles vendus", number(sales["items"]), f"dans {number(sales['categories'])} catégories"),
+        ("Clients acheteurs", number(orders["customers"]),
+         f"sur {number(orders['all_customers'])} clients"),
+    ])
 
     # Graphiques
     if data["by_category"].empty:
@@ -308,24 +332,19 @@ def render(period_label):
 
     # Santé du pipeline
     st.subheader("Santé du pipeline · 5 dernières minutes")
-    row = st.columns(4)
     p50, p95 = pipe["latency_p50"], pipe["latency_p95"]
     last = pipe["last_aggregate"]
     age = None if last is None or pd.isna(last) else int((now - last).total_seconds())
-    tiles = [
+    tile_row([
         ("Débit traité", f"{number(int(pipe['events_5m']) / 5, 1)} évt/min",
-         f"{number(pipe['events_5m'])} événements enregistrés"),
+         f"{number(pipe['events_5m'])} événements en 5 min"),
         ("Latence médiane", "—" if p50 is None or pd.isna(p50) else f"{number(p50, 1)} s",
-         None if p95 is None or pd.isna(p95) else f"émission → base · p95 {number(p95, 1)} s"),
+         "émission → base" + ("" if p95 is None or pd.isna(p95) else f" · p95 {number(p95, 1)} s")),
         ("Dernier agrégat écrit", "—" if age is None else f"il y a {age} s",
-         f"micro-batch Spark toutes les 5 s"),
+         "micro-batch Spark toutes les 5 s"),
         ("Messages rejetés", number(pipe["rejected"]),
-         "invalides ou impossibles à enrichir" + ("" if span is None else ", sur la période")),
-    ]
-    for column, (label, value, note) in zip(row, tiles):
-        with column.container(border=True):
-            st.metric(label, value)
-            st.caption(note)
+         "invalides ou non enrichis" + ("" if span is None else " · période")),
+    ])
 
     # Détail
     st.subheader("Détail")

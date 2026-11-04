@@ -246,6 +246,8 @@ est donc sans effet visible.
 
 ## 7. Tableau de bord
 
+![Tableau de bord RetailPulse sur Kubernetes, période 6 h](img/dashboard.png)
+
 Streamlit lit PostgreSQL en lecture seule toutes les 10 s (`st.fragment(run_every=10)`). Un filtre
 de période (1 h, 6 h, 24 h, tout) en haut de page s'applique à toute la page. Le dashboard affiche :
 * **Activité commerciale** : CA et commandes payées (avec variation par rapport à la période
